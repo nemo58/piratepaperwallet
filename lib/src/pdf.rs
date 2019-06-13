@@ -25,12 +25,12 @@ pub fn save_to_pdf(addresses: &str, filename: &str) {
 
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
     
-    let total_pages      = f64::ceil(keys.len() as f64 / 2.0);   // 2 per page
+    let total_pages      = f64::ceil(keys.len() as f64 / 1.0);   // 1 per page
     let mut current_page = 1; 
 
     for kv in keys.members() {
         // Add next page when moving to the next position.
-        if pos >= 2 {
+        if pos >= 1 {
             pos = 0;
             current_page = current_page + 1;
 
@@ -44,8 +44,16 @@ pub fn save_to_pdf(addresses: &str, filename: &str) {
         add_pk_to_page(&current_layer, &font, &font_bold, kv["private_key"].as_str().unwrap(), kv["seed"]["HDSeed"].as_str().unwrap(), kv["seed"]["path"].as_str().unwrap(), pos);
 
         // Is the shape stroked? Is the shape closed? Is the shape filled?
-        let line1 = Line {
-            points: vec![(Point::new(Mm(5.0), Mm(160.0)), false), (Point::new(Mm(205.0), Mm(160.0)), false)],
+    let line1 = Line {
+            points: vec![(Point::new(Mm(5.0), Mm(99.0)), false), (Point::new(Mm(205.0), Mm(99.0)), false)],
+            is_closed: true,
+            has_fill: false,
+            has_stroke: true,
+            is_clipping_path: false,
+        };
+
+	let line2 = Line {
+            points: vec![(Point::new(Mm(5.0), Mm(207.0)), false), (Point::new(Mm(205.0), Mm(207.0)), false)],
             is_closed: true,
             has_fill: false,
             has_stroke: true,
@@ -57,8 +65,12 @@ pub fn save_to_pdf(addresses: &str, filename: &str) {
         current_layer.set_outline_color(outline_color);
         current_layer.set_outline_thickness(2.0);
 
-        // Draw first line
+	// Set title
+	current_layer.use_text("Treasure Your Privacy", 32, Mm(37.0), Mm(277.0), &font_bold);
+
+        // Draw lines
         current_layer.add_shape(line1);
+        current_layer.add_shape(line2);
 
         // Add footer of page, only once for each pair of addresses
         if pos == 0 {
@@ -116,7 +128,7 @@ fn add_address_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef
     let (scaledimg, finalsize) = qrcode_scaled(address, 10);
 
     //         page_height  top_margin  vertical_padding  position       
-    let ypos = 297.0        - 5.0       - 50.0            - (140.0 * pos as f64);
+    let ypos = 297.0        - 5.0       - 77.0            - (140.0 * pos as f64);
     add_qrcode_image_to_page(current_layer, scaledimg, finalsize, Mm(10.0), Mm(ypos));
 
     current_layer.use_text("ARRR Address (Sapling)", 14, Mm(55.0), Mm(ypos+27.5), &font_bold);
@@ -134,7 +146,7 @@ fn add_pk_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef, fon
     let (scaledimg, finalsize) = qrcode_scaled(pk, 10);
 
     //         page_height  top_margin  vertical_padding  position       
-    let ypos = 297.0        - 5.0       - 100.0           - (140.0 * pos as f64);    
+    let ypos = 297.0        - 5.0       - 242.0           - (140.0 * pos as f64);    
     add_qrcode_image_to_page(current_layer, scaledimg, finalsize, Mm(145.0), Mm(ypos-17.5));
 
     current_layer.use_text("Private Key", 14, Mm(10.0), Mm(ypos+32.5), &font_bold);
