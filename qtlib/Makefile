@@ -4,11 +4,11 @@ else
     EXT := a
 endif
 
-all: target/debug/zecpaperrust.$(EXT)
+all: target/debug/arrrpaperrust.$(EXT)
 	g++ src/main.cpp -L./target/debug -lzecpaperrust -lpthread -ldl -o run
 	./run
 
-target/debug/zecpaperrust.$(EXT): src/lib.rs Cargo.toml
+target/debug/arrrpaperrust.$(EXT): src/lib.rs Cargo.toml
 	cargo build --lib
 
 clean:

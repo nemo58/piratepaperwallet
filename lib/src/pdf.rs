@@ -13,7 +13,7 @@ use printpdf::*;
  * Save the list of wallets (address + private keys) to the given PDF file name.
  */
 pub fn save_to_pdf(addresses: &str, filename: &str) {
-    let (doc, page1, layer1) = PdfDocument::new("Zec Sapling Paper Wallet", Mm(210.0), Mm(297.0), "Layer 1");
+    let (doc, page1, layer1) = PdfDocument::new("Pirate Sapling Paper Wallet", Mm(210.0), Mm(297.0), "Layer 1");
 
     let font  = doc.add_builtin_font(BuiltinFont::Courier).unwrap();
     let font_bold = doc.add_builtin_font(BuiltinFont::CourierBold).unwrap();
@@ -119,7 +119,7 @@ fn add_address_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef
     let ypos = 297.0        - 5.0       - 50.0            - (140.0 * pos as f64);
     add_qrcode_image_to_page(current_layer, scaledimg, finalsize, Mm(10.0), Mm(ypos));
 
-    current_layer.use_text("ZEC Address (Sapling)", 14, Mm(55.0), Mm(ypos+27.5), &font_bold);
+    current_layer.use_text("ARRR Address (Sapling)", 14, Mm(55.0), Mm(ypos+27.5), &font_bold);
     
     let strs = split_to_max(&address, 39, 39);  // No spaces, so user can copy the address
     for i in 0..strs.len() {

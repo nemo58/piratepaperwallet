@@ -1,43 +1,39 @@
 extern crate clap;
-extern crate zecpaperlib;
+extern crate piratepaperlib;
 
 use clap::{Arg, App};
-use zecpaperlib::paper::*;
-use zecpaperlib::pdf;
+use piratepaperlib::paper::*;
+use piratepaperlib::pdf;
 use std::io;
 use std::io::prelude::*;
 
 fn main() { 
-    let matches = App::new("zecpaperwaller")
+    let matches = App::new("piratepaperwallet")
        .version("1.0")
-       .about("A command line Zcash Sapling paper wallet generator")
-       .arg(Arg::with_name("testnet")
-                .short("t")
-                .long("testnet")
-                .help("Generate Testnet addresses"))
-        .arg(Arg::with_name("format")
+       .about("A command line Pirate Sapling paper wallet generator")
+       .arg(Arg::with_name("format")
                 .short("f")
                 .long("format")
-                .help("What format to generate the output in")
+                .help("What format to generate the output in: json or pdf")
                 .takes_value(true)
                 .value_name("FORMAT")
                 .possible_values(&["pdf", "json"])
                 .default_value("json"))
-        .arg(Arg::with_name("nohd")
+       .arg(Arg::with_name("nohd")
                 .short("n")
                 .long("nohd")
-                .help("Don't reuse HD keys. Normally, zecpaperwallet will use the same HD key to derive multiple addresses. This flag will use a new seed for each address"))
-        .arg(Arg::with_name("output")
+                .help("Don't reuse HD keys. Normally, piratepaperwallet will use the same HD key to derive multiple addresses. This flag will use a new seed for each address"))
+       .arg(Arg::with_name("output")
                 .short("o")
                 .long("output")
                 .index(1)
                 .help("Name of output file."))
-        .arg(Arg::with_name("entropy")
+       .arg(Arg::with_name("entropy")
                 .short("e")
                 .long("entropy")
                 .takes_value(true)
                 .help("Provide additional entropy to the random number generator. Any random string, containing 32-64 characters"))
-        .arg(Arg::with_name("z_addresses")
+       .arg(Arg::with_name("z_addresses")
                 .short("z")
                 .long("zaddrs")
                 .help("Number of Z addresses (Sapling) to generate")
@@ -48,8 +44,6 @@ fn main() {
                         Err(_)  => return Err(format!("Number of addresses '{}' is not a number", i))
                 }))
        .get_matches();  
-
-    let testnet: bool = matches.is_present("testnet");
     
     let nohd: bool    = matches.is_present("nohd");
 
@@ -58,7 +52,7 @@ fn main() {
     // If the user hasn't specified any, read from the stdin
     if matches.value_of("entropy").is_none() {
         // Read from stdin
-        println!("Provide additional entropy for generating random numbers. Type in a string of random characters, press [ENTER] when done");
+        println!("Provide additional entropy for generating random numbers. Type in a string of random characters (longer the better), press [ENTER] when done");
         let mut buffer = String::new();
         let stdin = io::stdin();
         stdin.lock().read_line(&mut buffer).unwrap();
@@ -84,7 +78,7 @@ fn main() {
 
     print!("Generating {} Sapling addresses.........", num_addresses);
     io::stdout().flush().ok();
-    let addresses = generate_wallet(testnet, nohd, num_addresses, &entropy); 
+    let addresses = generate_wallet(nohd, num_addresses, &entropy); 
     println!("[OK]");
     
     // If the default format is present, write to the console if the filename is absent
