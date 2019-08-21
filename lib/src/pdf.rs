@@ -1,5 +1,7 @@
 extern crate printpdf;
 
+use crate::paper::params;
+
 use qrcode::QrCode;
 use qrcode::types::Color;
 
@@ -9,10 +11,11 @@ use std::f64;
 use std::fs::File;
 use printpdf::*;
 
+
 /**
  * Save the list of wallets (address + private keys) to the given PDF file name.
  */
-pub fn save_to_pdf(addresses: &str, filename: &str) {
+pub fn save_to_pdf(addresses: &str, filename: &str) -> Result<(), String> {
     let (doc, page1, layer1) = PdfDocument::new("Pirate Sapling Paper Wallet", Mm(210.0), Mm(297.0), "Layer 1");
 
     let font  = doc.add_builtin_font(BuiltinFont::Courier).unwrap();
@@ -39,12 +42,20 @@ pub fn save_to_pdf(addresses: &str, filename: &str) {
             current_layer = doc.get_page(page2).add_layer("Layer 3");
         }
 
-        // Add address + private key
-        add_address_to_page(&current_layer, &font, &font_bold, kv["address"].as_str().unwrap(), pos);
-        add_pk_to_page(&current_layer, &font, &font_bold, kv["private_key"].as_str().unwrap(), kv["seed"]["HDSeed"].as_str().unwrap(), kv["seed"]["path"].as_str().unwrap(), pos);
+        let address  = kv["address"].as_str().unwrap();
+        let pk       = kv["private_key"].as_str().unwrap();
+        
+        let (seed, hdpath) = if kv["type"].as_str().unwrap() == "zaddr" && kv.contains("seed") {
+            (kv["seed"]["HDSeed"].as_str().unwrap(), kv["seed"]["path"].as_str().unwrap())
+        } else {
+            ("", "")
+        };
 
-        // Is the shape stroked? Is the shape closed? Is the shape filled?
-    let line1 = Line {
+        // Add address + private key
+        add_address_to_page(&current_layer, &font, &font_bold, address, pos);
+        add_pk_to_page(&current_layer, &font, &font_bold, pk, address, seed, hdpath, pos);
+
+        let line1 = Line {
             points: vec![(Point::new(Mm(5.0), Mm(99.0)), false), (Point::new(Mm(205.0), Mm(99.0)), false)],
             is_closed: true,
             has_fill: false,
@@ -65,8 +76,8 @@ pub fn save_to_pdf(addresses: &str, filename: &str) {
         current_layer.set_outline_color(outline_color);
         current_layer.set_outline_thickness(2.0);
 
-	// Set title
-	current_layer.use_text("Treasure Your Privacy", 32, Mm(37.0), Mm(277.0), &font_bold);
+	    // Set title
+	    current_layer.use_text("Treasure Your Privacy", 32, Mm(37.0), Mm(277.0), &font_bold);
 
         // Draw lines
         current_layer.add_shape(line1);
@@ -82,7 +93,21 @@ pub fn save_to_pdf(addresses: &str, filename: &str) {
         pos = pos + 1;        
     };
     
-    doc.save(&mut BufWriter::new(File::create(filename).unwrap())).unwrap();
+    let file = match File::create(filename) {
+        Ok(f)  => f,
+        Err(e) => {            
+            return Err(format!("Couldn't open {} for writing. Aborting. {}", filename, e));
+        }
+    };
+
+    match doc.save(&mut BufWriter::new(file)) {
+        Ok(_)   => (),
+        Err(e)  => {
+            return Err(format!("Couldn't save {}. Aborting. {}", filename, e));
+        }
+    };
+
+    return Ok(());
 }
 
 /**
@@ -129,9 +154,14 @@ fn add_address_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef
 
     //         page_height  top_margin  vertical_padding  position       
     let ypos = 297.0        - 5.0       - 77.0            - (140.0 * pos as f64);
-    add_qrcode_image_to_page(current_layer, scaledimg, finalsize, Mm(10.0), Mm(ypos));
+    let title = "ARRR Address (Sapling)";
 
-    current_layer.use_text("ARRR Address (Sapling)", 14, Mm(55.0), Mm(ypos+27.5), &font_bold);
+    add_address_at(current_layer, font, font_bold, title, address, &scaledimg, finalsize, ypos);
+}
+
+fn add_address_at(current_layer: &PdfLayerReference, font: &IndirectFontRef, font_bold: &IndirectFontRef, title: &str, address: &str, qrcode: &Vec<u8>, finalsize: usize, ypos: f64) {
+    add_qrcode_image_to_page(current_layer, qrcode, finalsize, Mm(10.0), Mm(ypos));
+    current_layer.use_text(title, 14, Mm(55.0), Mm(ypos+27.5), &font_bold);
     
     let strs = split_to_max(&address, 39, 39);  // No spaces, so user can copy the address
     for i in 0..strs.len() {
@@ -142,12 +172,37 @@ fn add_address_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef
 /**
  * Add the private key section to the PDF at `pos`, which can effectively be only 0 or 1.
  */
-fn add_pk_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef, font_bold: &IndirectFontRef, pk: &str, seed: &str, path: &str, pos: u32) {
-    let (scaledimg, finalsize) = qrcode_scaled(pk, 10);
+fn add_pk_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef, font_bold: &IndirectFontRef, pk: &str, address: &str, seed: &str, path: &str, pos: u32) {
+    //let (scaledimg, finalsize) = qrcode_scaled(pk, 10);
 
     //         page_height  top_margin  vertical_padding  position       
     let ypos = 297.0        - 5.0       - 242.0           - (140.0 * pos as f64);    
-    add_qrcode_image_to_page(current_layer, scaledimg, finalsize, Mm(145.0), Mm(ypos-17.5));
+    //add_qrcode_image_to_page(current_layer, scaledimg, finalsize, Mm(145.0), Mm(ypos-17.5));
+    let line1 = Line {
+            points: vec![(Point::new(Mm(5.0), Mm(ypos + 50.0)), false), (Point::new(Mm(205.0), Mm(ypos + 50.0)), false)],
+            is_closed: true,
+            has_fill: false,
+            has_stroke: true,
+            is_clipping_path: false,
+        };
+
+    let outline_color = printpdf::Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None));
+
+    current_layer.set_outline_color(outline_color);
+    let mut dash_pattern = LineDashPattern::default();
+    dash_pattern.dash_1 = Some(5);
+    current_layer.set_line_dash_pattern(dash_pattern);
+    current_layer.set_outline_thickness(1.0);
+
+    // Draw first line
+    current_layer.add_shape(line1);
+
+    // Reset the dashed line pattern
+    current_layer.set_line_dash_pattern(LineDashPattern::default());
+
+    let (scaledimg, finalsize) = qrcode_scaled(pk, 10);
+
+    add_qrcode_image_to_page(current_layer, &scaledimg, finalsize, Mm(145.0), Mm(ypos-17.5));
 
     current_layer.use_text("Private Key", 14, Mm(10.0), Mm(ypos+32.5), &font_bold);
     let strs = split_to_max(&pk, 45, 45);   // No spaces, so user can copy the private key
@@ -155,15 +210,24 @@ fn add_pk_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef, fon
         current_layer.use_text(strs[i].clone(), 12, Mm(10.0), Mm(ypos+25.0-((i*5) as f64)), &font);
     }
 
-    // And add the seed too. 
+    // Add the address a second time below the private key
+    let title = "ARRR Address (Sapling)";
+    current_layer.use_text(title, 12, Mm(10.0), Mm(ypos-10.0), &font_bold);    
+    let strs = split_to_max(&address, 39, 39);  // No spaces, so user can copy the address
+    for i in 0..strs.len() {
+        current_layer.use_text(strs[i].clone(), 12, Mm(10.0), Mm(ypos-15.0-((i*5) as f64)), &font);
+    }
 
-    current_layer.use_text(format!("HDSeed: {}, Path: {}", seed, path).as_str(), 8, Mm(10.0), Mm(ypos-25.0), &font);
+    // And add the seed too. 
+    if !seed.is_empty() {
+        current_layer.use_text(format!("HDSeed: {}, Path: {}", seed, path).as_str(), 8, Mm(10.0), Mm(ypos-25.0), &font);
+    }
 }
 
 /**
  * Insert the given QRCode into the PDF at the given x,y co-ordinates. The qr code is a vector of RGB values. 
  */
-fn add_qrcode_image_to_page(current_layer: &PdfLayerReference, qr: Vec<u8>, qrsize: usize, x: Mm, y: Mm) {
+fn add_qrcode_image_to_page(current_layer: &PdfLayerReference, qr: &Vec<u8>, qrsize: usize, x: Mm, y: Mm) {
     // you can also construct images manually from your data:
     let image_file_2 = ImageXObject {
             width: Px(qrsize),
@@ -174,7 +238,7 @@ fn add_qrcode_image_to_page(current_layer: &PdfLayerReference, qr: Vec<u8>, qrsi
             /* put your bytes here. Make sure the total number of bytes =
             width * height * (bytes per component * number of components)
             (e.g. 2 (bytes) x 3 (colors) for RGB 16bit) */
-            image_data: qr,
+            image_data: qr.to_vec(),
             image_filter: None, /* does not work yet */
             clipping_bbox: None, /* doesn't work either, untested */
     };
@@ -221,6 +285,57 @@ fn split_to_max(s: &str, max: usize, blocksize: usize) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     
+        #[test]
+    fn test_qrcode_scale() {
+        use array2d::Array2D;
+        use qrcode::QrCode;
+        use crate::pdf::qrcode_scaled;
+
+        let testdata = "This is some testdata";
+        let code = QrCode::new(testdata.as_bytes()).unwrap();
+        let width = code.width();
+
+        let factor  = 10;
+        let padding = 10;
+
+        let (scaled, size) = qrcode_scaled(testdata, factor);
+        let scaled_size = (width * factor)+(2*padding);
+
+        assert_eq!(size, scaled_size);
+
+        // 3 bytes per pixel
+        let scaled_qrcode = Array2D::from_row_major(&scaled, scaled_size, scaled_size*3); 
+
+        for i in 0..scaled_size {
+            for j in 0..scaled_size {                
+                // The padding should be white
+                if i < padding || i >= (width*factor) + padding ||
+                    j < padding || j >= (width*factor) + padding {
+                        for px in 0..3 {
+                            assert_eq!(scaled_qrcode[(i, j*3+px)], 255u8);
+                        }
+                } else {
+                    // Should match the QR code module
+                    let module_i = (i-padding)/factor;
+                    let module_j = (j-padding)/factor;
+                    
+                    // This should really be (i,j), but I think there's a bug in the qrcode
+                    // module that is returning it the other way.
+                    let color = if code[(module_j, module_i)] == qrcode::Color::Light {
+                        // Light color is white
+                        255u8
+                    } else {
+                        // Dark color is black
+                        0u8
+                    };
+
+                    for px in 0..3 {
+                        assert_eq!(scaled_qrcode[(i, j*3+px)], color);
+                    }
+                }
+            }
+        }
+    }
     #[test]
     fn test_split() {
         use crate::pdf::split_to_max;

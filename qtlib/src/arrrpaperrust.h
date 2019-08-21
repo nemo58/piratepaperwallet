@@ -7,6 +7,7 @@ extern "C"{
 
 extern char * rust_generate_wallet(unsigned int count, const char* entropy);
 extern void   rust_free_string(char* s);
+extern bool   rust_save_as_pdf(const char* json, const char* filename);
 
 #ifdef __cplusplus
 }
