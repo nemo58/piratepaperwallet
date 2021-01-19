@@ -9,7 +9,7 @@ use std::io::prelude::*;
 
 fn main() { 
     let matches = App::new("piratepaperwallet")
-       .version("1.0")
+       .version("1.1")
        .about("A command line Pirate Sapling paper wallet generator")
        .arg(Arg::with_name("format")
                 .short("f")
