@@ -133,6 +133,20 @@ fn get_address(seed: &[u8], index: u32) -> (String, String, String, json::JsonVa
 // Tests
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn test_full_viewing_key() {
+        use crate::paper::get_address;
+        use hex::FromHex;
+        let hdseed = "023241db228975d6703d34e1cc900c66f63fa4b512894c10faeadbf42e109fc4";
+        // Seed is 32 bytes long.
+        let hdseed_decoded = <[u8; 32]>::from_hex(hdseed).expect("Decoding failed");
+        let expected_addr = "zs19qjkhwjzz03h4p3g0rca50tgeznuhzw9773m8ur64mtaqccyflgdhjsg0fgsxt0m3ljvs73rmc0";
+        let expected_fvk = "zxviews1qvjtyprtqqqqpqyhjrw9eg0hhj7a3mfqae4vfnew6fmsj8a6qlssptk0n4lvz3dhk8p0uu6wvey6u479stpenfjjmsqf8udtjurx8d8ya4rj4l2pf4hxeg63ksf7rqtszg6chm7f00f4z9td7cn6a98sawm3u77hhlpqj6awq5zfjkfz97nmdtdrsdmz44murgm3ck3ra4ph4y9969js5vydh2xqe73z0zu6z2jydq9z2fzgfc5r0f7dyw9qkmw56wpccfc0lcrskmctxn48x";
+        let (addr, fvk, _, _) = get_address(&hdseed_decoded, 0);
+        assert_eq!(addr, expected_addr);
+        assert_eq!(fvk, expected_fvk);
+    }
     
     /**
      * Test the wallet generation and that it is generating the right number and type of addresses
