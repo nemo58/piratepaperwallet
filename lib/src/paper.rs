@@ -71,10 +71,11 @@ fn gen_addresses_with_seed_as_json<F>(count: u32, mut get_seed: F) -> String
 
     for i in 0..count {
         let (seed, child) = get_seed(i);
-        let (addr, pk, path) = get_address(&seed, child);
+        let (addr, fvk, pk, path) = get_address(&seed, child);
         ans.push(object!{
                 "num"           => i,
                 "address"       => addr,
+                "viewing_key"   => fvk,
                 "private_key"   => pk,
                 "seed"          => path
         }).unwrap(); 
@@ -84,9 +85,10 @@ fn gen_addresses_with_seed_as_json<F>(count: u32, mut get_seed: F) -> String
 }
 
 // Generate a standard ZIP-32 address from the given seed at 32'/44'/0'/index
-fn get_address(seed: &[u8], index: u32) -> (String, String, json::JsonValue) {
+fn get_address(seed: &[u8], index: u32) -> (String, String, String, json::JsonValue) {
     let addr_prefix : &str = "zs";
     let pk_prefix   : &str = "secret-extended-key-main";
+    let fvk_prefix  : &str = "zxviews";
     let cointype           = {133};
     
     let spk: ExtendedSpendingKey = ExtendedSpendingKey::from_path(
@@ -117,7 +119,19 @@ fn get_address(seed: &[u8], index: u32) -> (String, String, json::JsonValue) {
     let c_d: Vec<u5> = vp.to_base32();
     let encoded_pk = Bech32::new(pk_prefix.into(), c_d).expect("bech32 failed").to_string();
 
-    return (encoded.to_string(), encoded_pk.to_string(), path);
+    // Extended Full Viewing Key, aka Full Viewing Key.
+    let mut vfvk: Vec<u8> = vec![];
+    ExtendedFullViewingKey::from(&spk).write(&mut vfvk).expect(
+        "Should be able to write to a Vec"
+    );
+    let fvk_base32: Vec<u5> = vfvk.to_base32();
+    let encoded_fvk = Bech32::new(fvk_prefix.into(), fvk_base32).expect(
+        "bech32 failed (full viewing key)"
+    );
+
+    return (
+        encoded.to_string(), encoded_fvk.to_string(), encoded_pk.to_string(), path
+    );
 }
 
 
@@ -128,6 +142,20 @@ fn get_address(seed: &[u8], index: u32) -> (String, String, json::JsonValue) {
 // Tests
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn test_full_viewing_key() {
+        use crate::paper::get_address;
+        use hex::FromHex;
+        let hdseed = "023241db228975d6703d34e1cc900c66f63fa4b512894c10faeadbf42e109fc4";
+        // Seed is 32 bytes long.
+        let hdseed_decoded = <[u8; 32]>::from_hex(hdseed).expect("Decoding failed");
+        let expected_addr = "zs19qjkhwjzz03h4p3g0rca50tgeznuhzw9773m8ur64mtaqccyflgdhjsg0fgsxt0m3ljvs73rmc0";
+        let expected_fvk = "zxviews1qvjtyprtqqqqpqyhjrw9eg0hhj7a3mfqae4vfnew6fmsj8a6qlssptk0n4lvz3dhk8p0uu6wvey6u479stpenfjjmsqf8udtjurx8d8ya4rj4l2pf4hxeg63ksf7rqtszg6chm7f00f4z9td7cn6a98sawm3u77hhlpqj6awq5zfjkfz97nmdtdrsdmz44murgm3ck3ra4ph4y9969js5vydh2xqe73z0zu6z2jydq9z2fzgfc5r0f7dyw9qkmw56wpccfc0lcrskmctxn48x";
+        let (addr, fvk, _, _) = get_address(&hdseed_decoded, 0);
+        assert_eq!(addr, expected_addr);
+        assert_eq!(fvk, expected_fvk);
+    }
     
     /**
      * Test the wallet generation and that it is generating the right number and type of addresses
