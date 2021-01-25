@@ -1,9 +1,18 @@
+use std::thread;
 use hex;
-use zip32::{ChildIndex, ExtendedFullViewingKey, ExtendedSpendingKey};
+use base58::{ToBase58};
 use bech32::{Bech32, u5, ToBase32};
 use rand::{Rng, ChaChaRng, FromEntropy, SeedableRng};
 use json::{array, object};
-use blake2_rfc::blake2b::Blake2b;
+use sha2::{Sha256, Digest};
+use std::io;
+use std::io::Write;
+use std::sync::mpsc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::panic;
+use std::time::{SystemTime};
+use zcash_primitives::zip32::{DiversifierIndex, DiversifierKey, ChildIndex, ExtendedSpendingKey, ExtendedFullViewingKey};
 
 /**
  * Generate a series of `count` addresses and private keys. 

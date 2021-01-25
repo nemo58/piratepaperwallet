@@ -5,7 +5,7 @@ authors = ["mrlynch"]
 edition = "2018"
     
 [dependencies]
-clap = "~2.33"
+clap = "2.33.0"
 piratepaperlib = { path = "../lib" }
 json = "0.11.14"
 printpdf = "0.2.8"

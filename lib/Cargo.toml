@@ -4,12 +4,22 @@ version = "0.1.0"
 authors = ["mrlynch"]
 edition = "2018"
 
+[features]
+default = ["printpdf", "systemrand"]
+systemrand = []
+
 [dependencies]
 rand = "0.5"
 hex = "0.3"
 bech32 = "0.6"
-zip32 = {  git = "https://github.com/zcash/librustzcash", rev="3b6f5e3d5ede6469f6ae85357f0b03d4c1b45cfe" }
+zcash_primitives = {  git = "https://github.com/zcash/librustzcash", rev = "5a48d179b8434a0318e7e19dda506e245a904092" }
 json = "0.11.14"    
 qrcode = { version = "0.8", default-features = false }
-printpdf = "0.2.8"
-blake2-rfc = { git = "https://github.com/gtank/blake2-rfc", rev="7a5b5fc99ae483a0043db7547fb79a6fa44b88a9" }
+printpdf = { version = "0.2.8", optional = true }
+libsecp256k1 = "0.2.2"
+ripemd160 = "0.8.0"
+sha2 = "0.8.0"
+base58 = "0.1.0"
+
+[dev-dependencies]
+array2d = "0.1.0"
