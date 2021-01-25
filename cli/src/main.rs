@@ -138,7 +138,7 @@ fn main() {
         // We already know the output file name was specified
         print!("Writing {:?} as a PDF file...", filename.unwrap());
         io::stdout().flush().ok();
-        match pdf::save_to_pdf(&addresses, filename.unwrap()); {
+        match pdf::save_to_pdf(&addresses, filename.unwrap()) {
             Ok(_)   => { println!("[OK]");},
             Err(e)  => {
                 eprintln!("[ERROR]");
