@@ -1,7 +1,5 @@
 extern crate printpdf;
 
-use crate::paper::params;
-
 use qrcode::QrCode;
 use qrcode::types::Color;
 

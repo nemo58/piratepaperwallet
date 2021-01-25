@@ -362,11 +362,6 @@ fn gen_addresses_with_seed_as_json<F>(count: u32, mut get_seed: F) -> String
 
 /// Generate a standard ZIP-32 address from the given seed at 32'/44'/0'/index
 fn get_address(seed: &[u8], index: u32) -> (String, String, String, json::JsonValue) {
-    let addr_prefix : &str = "zs";
-    let pk_prefix   : &str = "secret-extended-key-main";
-    let fvk_prefix  : &str = "zxviews";
-    let cointype           = {133};
-    
     let spk: ExtendedSpendingKey = ExtendedSpendingKey::from_path(
             &ExtendedSpendingKey::master(seed),
             &[
@@ -387,7 +382,7 @@ fn get_address(seed: &[u8], index: u32) -> (String, String, String, json::JsonVa
     let mut vfvk: Vec<u8> = vec![];
     ExtendedFullViewingKey::from(&spk).write(&mut vfvk).expect("Should be able to write to a Vec");
     let fvk_base32: Vec<u5> = vfvk.to_base32();
-    let encoded_fvk = Bech32::new(fvk_prefix.into(), fvk_base32).expect("bech32 failed (full viewing key)");
+    let encoded_fvk = Bech32::new(params().zviewkey_prefix.into(), fvk_base32).expect("bech32 failed (full viewing key)").to_string();
 
     return (encoded, encoded_fvk, encoded_pk, path);
 }
