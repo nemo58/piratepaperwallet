@@ -83,7 +83,21 @@ pub fn save_to_pdf(addresses: &str, filename: &str) -> Result<(), String> {
         pos = pos + 1;        
     };
     
-    doc.save(&mut BufWriter::new(File::create(filename).unwrap())).unwrap();
+    let file = match File::create(filename) {
+        Ok(f)  => f,
+        Err(e) => {            
+            return Err(format!("Couldn't open {} for writing. Aborting. {}", filename, e));
+        }
+    };
+
+    match doc.save(&mut BufWriter::new(file)) {
+        Ok(_)   => (),
+        Err(e)  => {
+            return Err(format!("Couldn't save {}. Aborting. {}", filename, e));
+        }
+    };
+
+    return Ok(());
 }
 
 /**
