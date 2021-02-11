@@ -164,10 +164,18 @@ pub fn vanity_thread(entropy: &[u8], prefix: String, tx: mpsc::Sender<String>, p
             
             let encoded = encode_address(&spk);
             let encoded_pk = encode_privatekey(&spk);
-            
+
+            // Extended Full Viewing Key, aka Full Viewing Key.
+            let mut vfvk: Vec<u8> = vec![];
+            ExtendedFullViewingKey::from(&spk).write(&mut vfvk).expect("Should be able to write to a Vec");
+            let fvk_base32: Vec<u5> = vfvk.to_base32();
+            let encoded_fvk = Bech32::new(params().zviewkey_prefix.into(), fvk_base32).expect("bech32 failed (full viewing key)").to_string();
+
+
             let wallet = array!{object!{
                 "num"           => 0,
                 "address"       => encoded,
+                "viewing_key"   => encoded_fvk,
                 "private_key"   => encoded_pk,
                 "type"          => "zaddr"}};
             

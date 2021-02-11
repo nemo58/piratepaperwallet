@@ -42,8 +42,12 @@ pub fn save_to_pdf(addresses: &str, filename: &str) -> Result<(), String> {
         // Add address + full viewing key + private key
         add_address_to_page(&current_layer, &font, &font_bold, kv["address"].as_str().unwrap(), pos);
         add_fvk_to_page(&current_layer, &font, &font_bold, kv["viewing_key"].as_str().unwrap(), pos);
-        add_pk_to_page(&current_layer, &font, &font_bold, kv["private_key"].as_str().unwrap(), kv["seed"]["HDSeed"].as_str().unwrap(), kv["seed"]["path"].as_str().unwrap(), pos);
-
+        if kv.has_key("seed"){
+            add_pk_and_seed_to_page(&current_layer, &font, &font_bold, kv["private_key"].as_str().unwrap(), kv["seed"]["HDSeed"].as_str().unwrap(), kv["seed"]["path"].as_str().unwrap(), pos);
+        }else{
+            add_pk_to_page(&current_layer, &font, &font_bold, kv["private_key"].as_str().unwrap(), pos);
+        }
+       
         // Is the shape stroked? Is the shape closed? Is the shape filled?
     let line1 = Line {
             points: vec![(Point::new(Mm(5.0), Mm(99.0)), false), (Point::new(Mm(205.0), Mm(99.0)), false)],
@@ -67,7 +71,7 @@ pub fn save_to_pdf(addresses: &str, filename: &str) -> Result<(), String> {
         current_layer.set_outline_thickness(2.0);
 
 	// Set title
-	current_layer.use_text("Treasure Your Privacy", 32, Mm(37.0), Mm(277.0), &font_bold);
+	current_layer.use_text("Treasure Your Privacy", 32.0, Mm(37.0), Mm(277.0), &font_bold);
 
         // Draw lines
         current_layer.add_shape(line1);
@@ -132,7 +136,7 @@ fn qrcode_scaled(data: &str, scalefactor: usize) -> (Vec<u8>, usize) {
  * Add a footer at the bottom of the page
  */
 fn add_footer_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef, footer: &str) {
-    current_layer.use_text(footer, 10, Mm(5.0), Mm(5.0), &font);
+    current_layer.use_text(footer, 10.0, Mm(5.0), Mm(5.0), &font);
 }
 
 
@@ -146,11 +150,11 @@ fn add_address_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef
     let ypos = 297.0        - 5.0       - 57.0            - (140.0 * pos as f64);
     add_qrcode_image_to_page(current_layer, scaledimg, finalsize, Mm(10.0), Mm(ypos));
 
-    current_layer.use_text("ARRR Receiving Address (Sapling)", 14, Mm(55.0), Mm(ypos+27.5), &font_bold);
+    current_layer.use_text("ARRR Receiving Address (Sapling)", 14.0, Mm(55.0), Mm(ypos+27.5), &font_bold);
     
     let strs = split_to_max(&address, 39, 39);  // No spaces, so user can copy the address
     for i in 0..strs.len() {
-        current_layer.use_text(strs[i].clone(), 12, Mm(55.0), Mm(ypos+20.0-((i*5) as f64)), &font);
+        current_layer.use_text(strs[i].clone(), 12.0, Mm(55.0), Mm(ypos+20.0-((i*5) as f64)), &font);
     }
 }
 
@@ -164,34 +168,48 @@ fn add_fvk_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef, fo
     let ypos = 297.0        - 5.0       - 150.0            - (140.0 * pos as f64);
     add_qrcode_image_to_page(current_layer, scaledimg, finalsize, Mm(10.0), Mm(ypos));
 
-    current_layer.use_text("Viewing Key (for view-only wallet)", 14, Mm(75.0), Mm(ypos+51.0), &font_bold);
-    current_layer.use_text("Keep private!", 14, Mm(75.0), Mm(ypos+45.0), &font_bold);
+    current_layer.use_text("Viewing Key (for view-only wallet)", 14.0, Mm(75.0), Mm(ypos+51.0), &font_bold);
+    current_layer.use_text("Keep private!", 14.0, Mm(75.0), Mm(ypos+45.0), &font_bold);
 
     let strs = split_to_max(&fvk, 45, 45);  // No spaces, so user can copy the fvk
     for i in 0..strs.len() {
-        current_layer.use_text(strs[i].clone(), 12, Mm(75.0), Mm(ypos+35.0-((i*5) as f64)), &font);
+        current_layer.use_text(strs[i].clone(), 12.0, Mm(75.0), Mm(ypos+35.0-((i*5) as f64)), &font);
     }
 }
 
 /**
  * Add the private key section to the PDF at `pos`, which can effectively be only 0 or 1.
  */
-fn add_pk_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef, font_bold: &IndirectFontRef, pk: &str, seed: &str, path: &str, pos: u32) {
+ fn add_pk_and_seed_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef, font_bold: &IndirectFontRef, pk: &str, seed: &str, path: &str, pos: u32) {
     let (scaledimg, finalsize) = qrcode_scaled(pk, 10);
 
     //         page_height  top_margin  vertical_padding  position       
     let ypos = 297.0        - 5.0       - 242.0           - (140.0 * pos as f64);    
     add_qrcode_image_to_page(current_layer, scaledimg, finalsize, Mm(138.0), Mm(ypos-17.5));
 
-    current_layer.use_text("Private Key", 14, Mm(10.0), Mm(ypos+32.5), &font_bold);
+    current_layer.use_text("Private Key", 14.0, Mm(10.0), Mm(ypos+32.5), &font_bold);
     let strs = split_to_max(&pk, 45, 45);   // No spaces, so user can copy the private key
     for i in 0..strs.len() {
-        current_layer.use_text(strs[i].clone(), 12, Mm(10.0), Mm(ypos+25.0-((i*5) as f64)), &font);
+        current_layer.use_text(strs[i].clone(), 12.0, Mm(10.0), Mm(ypos+25.0-((i*5) as f64)), &font);
     }
 
     // And add the seed too. 
 
-    current_layer.use_text(format!("HDSeed: {}, Path: {}", seed, path).as_str(), 8, Mm(10.0), Mm(ypos-25.0), &font);
+    current_layer.use_text(format!("HDSeed: {}, Path: {}", seed, path).as_str(), 8.0, Mm(10.0), Mm(ypos-25.0), &font);
+}
+
+fn add_pk_to_page(current_layer: &PdfLayerReference, font: &IndirectFontRef, font_bold: &IndirectFontRef, pk: &str, pos: u32) {
+    let (scaledimg, finalsize) = qrcode_scaled(pk, 10);
+
+    //         page_height  top_margin  vertical_padding  position       
+    let ypos = 297.0        - 5.0       - 242.0           - (140.0 * pos as f64);    
+    add_qrcode_image_to_page(current_layer, scaledimg, finalsize, Mm(138.0), Mm(ypos-17.5));
+
+    current_layer.use_text("Private Key", 14.0, Mm(10.0), Mm(ypos+32.5), &font_bold);
+    let strs = split_to_max(&pk, 45, 45);   // No spaces, so user can copy the private key
+    for i in 0..strs.len() {
+        current_layer.use_text(strs[i].clone(), 12.0, Mm(10.0), Mm(ypos+25.0-((i*5) as f64)), &font);
+    }
 }
 
 /**
